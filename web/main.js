@@ -16,9 +16,6 @@ bodjo.on('connect', socket => {
 	});
 	socket.on('field', data => {
 		lastField = parseField(data);
-		if (lastField.time == 100)
-			console.log(lastField)
-
 		if (playing && lastField.me)
 			turn(lastField);
 

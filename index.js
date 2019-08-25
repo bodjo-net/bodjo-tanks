@@ -355,7 +355,6 @@ function UInt16(n) {
 	return new Uint16Array(Array.isArray(n) ? n : [n]).buffer;
 }
 function UInt32(n) {
-	log(new Uint32Array(Array.isArray(n) ? n : [n]).buffer)
 	return new Uint32Array(Array.isArray(n) ? n : [n]).buffer;
 }
 function Float32(n) {
