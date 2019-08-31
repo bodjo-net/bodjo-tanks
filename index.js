@@ -59,7 +59,7 @@ bodjo.scoreboard.updateWhenNeeded = false;
 
 bodjo.on('connect', socket => {
 	socket.emit('const', consts);
-})
+});
 bodjo.on('player-connect', (player) => {
 	let username = player.username,
 		id = player.id, 
@@ -210,7 +210,7 @@ function tick() {
 						killerScore.combo++;
 						killerScore.kills++;
 						bodjo.scoreboard.push(bullet.author.username, killerScore);
-						console.log('"'+bullet.author.username+'" killed "' +username+'"');
+						// console.log('"'+bullet.author.username+'" killed "' +username+'"');
 					} else
 						bulletEvents.push({to: 'player', id: player.id});
 					bulletRemoved = true;

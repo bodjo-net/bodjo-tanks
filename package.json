@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/dkaraush/bodjo-tanks#readme",
   "dependencies": {
-    "@dkaraush/bodjo-game": "^0.10.1",
+    "@dkaraush/bodjo-game": "^0.10.2",
     "socket.io-client": "^2.2.0"
   }
 }

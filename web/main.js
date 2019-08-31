@@ -21,18 +21,31 @@ bodjo.on('connect', socket => {
 
 		bodjo.callRender(lastField);
 	});
-
-	function turn(field) {
+	function compile() {
 		try {
 			compiledFunction = new Function(bodjo.editor.getValue())();
+			if (typeof compiledFunction !== 'function') {
+				bodjo.showError('your code should return a function');
+				playing = false;
+				compiledFunction = null;
+				updatePlayingStatus();
+				socket.emit('stop');
+				return false;
+			}
+			return true;
 		} catch (e) {
 			bodjo.showError(e);
 			playing = false;
 			compiledFunction = null;
 			updatePlayingStatus();
 			socket.emit('stop');
-			return;
+			return false;
 		}
+	}
+	function turn(field) {
+		if (typeof compiledFunction !== 'function')
+			if (!compile())
+				return;
 
 		let result = null;
 		try {
