@@ -57,11 +57,13 @@ bodjo.scoreboard.sortFunction = function (a, b) {
 }
 bodjo.scoreboard.updateWhenNeeded = false;
 
+bodjo.on('connect', socket => {
+	socket.emit('const', consts);
+})
 bodjo.on('player-connect', (player) => {
 	let username = player.username,
 		id = player.id, 
 		playing = false;
-	player.emit('const', consts);
 
 	player.on('start', () => {
 		if (playing)
@@ -199,15 +201,16 @@ function tick() {
 						player.y = newPlayerPos.y;
 						player.bonuses = {};
 
-						let deadScore = bodjo.scoreboard.get(username) || clearScore;
+						let deadScore = bodjo.scoreboard.get(username) || Object.assign({}, clearScore);
+						let killerScore = bodjo.scoreboard.get(bullet.author.username) || Object.assign({}, clearScore);
 						deadScore.deaths++;
 						deadScore.combo = 0;
 						bodjo.scoreboard.push(username, deadScore);
-						let killerScore = bodjo.scoreboard.get(bullet.author.username) || clearScore;
 						killerScore.score += 100 + 50 * killerScore.combo;
 						killerScore.combo++;
 						killerScore.kills++;
 						bodjo.scoreboard.push(bullet.author.username, killerScore);
+						console.log('"'+bullet.author.username+'" killed "' +username+'"');
 					} else
 						bulletEvents.push({to: 'player', id: player.id});
 					bulletRemoved = true;

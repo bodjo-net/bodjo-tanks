@@ -5,112 +5,14 @@ const MAX16 = 65535;
 let lastField = null;
 window.consts = {};
 bodjo.on('connect', socket => {
-	let playing = false;
-
-	let compiledFunction = null;
-
 	socket.on('const', _consts => {
 		window.consts = _consts;
 		for (let constName in _consts)
 			window[constName] = _consts[constName];
 	});
 	socket.on('field', data => {
-		lastField = parseField(data);
-		if (playing && lastField.me)
-			turn(lastField);
-
-		bodjo.callRender(lastField);
+		bodjo.callRender('', parseField(data));
 	});
-
-	function turn(field) {
-		try {
-			compiledFunction = new Function(bodjo.editor.getValue())();
-		} catch (e) {
-			bodjo.showError(e);
-			playing = false;
-			compiledFunction = null;
-			updatePlayingStatus();
-			socket.emit('stop');
-			return;
-		}
-
-		let result = null;
-		try {
-			result = compiledFunction(field);
-		} catch (e) {
-			bodjo.showError(e);
-			playing = false;
-			compiledFunction = null;
-			updatePlayingStatus();
-			socket.emit('stop');
-			return;
-		}
-
-		if (typeof result !== 'object' ||
-			Array.isArray(result) ||
-			result == null ||
-			!Array.isArray(result.move) ||
-			result.move.length != 2 ||
-			typeof result.move[0] !== 'number' ||
-			typeof result.move[1] !== 'number' ||
-			typeof result.headAngle !== 'number' ||
-			typeof result.shoot === 'undefined') {
-			bodjo.showError('invalid returned result');
-			playing = false;
-			compiledFunction = null;
-			updatePlayingStatus();
-			socket.emit('stop');
-			return;
-		}
-
-		let d = Math.sqrt(Math.pow(result.move[0],2) + Math.pow(result.move[1],2));
-		result.move[0] = result.move[0] / d;
-		result.move[1] = result.move[1] / d;
-
-		let buff = new ArrayBuffer(6);
-		let buffView = new DataView(buff);
-		let headAngle = result.headAngle % (Math.PI*2);
-		if (headAngle < 0)
-			headAngle = Math.PI*2 + headAngle;
-		buffView.setUint8(0, field.time % MAX8);
-		buffView.setUint16(1, (round(headAngle / (Math.PI*2) * (Math.pow(2, 15)-1)) << 1) + (!!result.shoot-0));
-		let angle = Math.atan2(result.move[1], result.move[0]);
-		let speed = range(Math.sqrt(Math.pow(result.move[1], 2) + Math.pow(result.move[0], 2)), 0, 1);
-		buffView.setUint16(3, angle / (Math.PI*2) * MAX16);
-		buffView.setUint8(5, speed * MAX8);
-		socket.emit('turn', buff);
-	}
-
-	socket.on('disconnect', function () {
-		playing = false;
-		updatePlayingStatus();
-	});
-
-	bodjo.controls = [
-		Button('play', () => {
-			if (playing) return;
-			
-			playing = true;
-			updatePlayingStatus();
-			socket.emit('start');
-		}),
-		Button('pause', () => {
-			if (!playing) return;
-
-			compiledFunction = null;
-			playing = false;
-			updatePlayingStatus();
-			socket.emit('stop');
-		}),
-		Button('debug', () => {
-			debug = !debug;
-			bodjo.getControl('debug').setActive(debug);
-		})
-	];
-
-	function updatePlayingStatus() {
-		bodjo.getControl('play').setActive(playing);
-	}
 });
 
 bodjo.on('scoreboard', (scoreboard) => {
@@ -125,35 +27,6 @@ bodjo.on('scoreboard', (scoreboard) => {
 						   ])
 	);
 });
-
-function point(a, color) {
-    if (typeof a === 'undefined' || lastField == null)
-        return;
-    if (!Array.isArray(lastField._render))
-        lastField._render = [];
-    lastField._render.push({color: color, a: a, type: 'point'});
-}
-function line(a, b, color) {
-    if (typeof a === 'undefined' || typeof b === 'undefined' || lastField == null)
-        return;
-    if (!Array.isArray(lastField._render))
-        lastField._render = [];
-    lastField._render.push({color: color, a: a, b: b, type: 'line'});
-}
-function circle(a, r, color) {
-    if (typeof a === 'undefined' || lastField == null)
-        return;
-    if (!Array.isArray(lastField._render))
-        lastField._render = [];
-    lastField._render.push({color: color, a: a, r: r, type: 'circle'});
-}
-function text(string, a, color) {
-    if (typeof a === 'undefined' || lastField == null)
-        return;
-    if (!Array.isArray(lastField._render))
-        lastField._render = [];
-    lastField._render.push({color: color, text: string, a: a, type: 'text'});
-}
 
 function parseField(data) {
 	let offset = 0;

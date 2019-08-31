@@ -77,7 +77,7 @@ function loadSprites(obj) {
 }
 
 let bulletEvents = [];
-bodjo.on('render', function (data) {
+bodjo.render = function (canvas, ctx, resizeCanvas, data) {
     let tankRadius = consts.tankRadius,
         width = data.width,
         height = data.height,
@@ -87,10 +87,7 @@ bodjo.on('render', function (data) {
         D = sqrt(W*W+H*H),
         S = W / width;
 
-    lastData = data;
-
-    if (aspectRatio != (data.width / data.height))
-        resizeCanvas(data.width / data.height);
+    resizeCanvas(data.width / data.height);
 
 	ctx.fillStyle = ctx.createPattern(sprites.bg.sand, 'repeat');
     ctx.fillRect(0,0,W,H);
@@ -410,4 +407,4 @@ bodjo.on('render', function (data) {
         ctx.arc(0, H, 0.5 * window.devicePixelRatio * data.tankRadius * S, 0, PI*2);
         ctx.fill();
     }
-});
+}
