@@ -82,7 +82,7 @@ bodjo.on('player-connect', (player) => {
 			socket: player,
 			bonuses: {},
 			hp: 1,
-			lastShot: T,
+			lastShot: -1,
 			headAngle: 0
 		};
 
@@ -266,7 +266,7 @@ function tick() {
 				UInt8(player.vtime+1 >= T ? (player.vx + 1) / 2 * MAX8 : 0),
 				UInt8(player.vtime+1 >= T ? (player.vy + 1) / 2 * MAX8 : 0),
 				UInt8(player.headAngle / (Math.PI*2) * MAX8),
-				UInt8(range(T - player.lastShot, 0, MAX8)),
+				UInt8(player.lastShot == -1 ? MAX8 : range(T - player.lastShot, 0, MAX8-1)),
 				UInt8(player.hp * MAX8),
 				UInt8((!!player.bonuses.heal-0) + (!!player.bonuses.ammo-0)*2),
 				UInt16(player.x / consts.width * MAX16),

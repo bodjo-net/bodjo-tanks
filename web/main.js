@@ -191,7 +191,7 @@ function parseField(data) {
 		pO.vy = (d1[3] / MAX8 * 2 - 1) * consts.tankSpeed;
 		pO.angle = atan2(pO.vy, pO.vx);
 		pO.headAngle = d1[4] / MAX8 * (Math.PI*2);
-		pO.lastShot = time - d1[5];
+		pO.lastShot = d1[5] == MAX8 ? -1 : (time - d1[5]);
 		pO.hp = d1[6] / MAX8;
 		pO.bonuses = {
 			heal: (d1[7] == 1 || d1[7] == 3),
