@@ -77,7 +77,7 @@ function loadSprites(obj) {
 }
 
 let bulletEvents = [];
-bodjo.render = function (canvas, ctx, resizeCanvas, data) {
+bodjo.render = function (canvas, ctx, resizeCanvas, dataPushed, data) {
     let tankRadius = consts.tankRadius,
         width = data.width,
         height = data.height,
