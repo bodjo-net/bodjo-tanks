@@ -15,6 +15,7 @@ bodjo.on('connect', socket => {
 			window[constName] = _consts[constName];
 	});
 	socket.on('field', data => {
+		// console.log('field [' + data.byteLength + ']');
 		lastField = parseField(data);
 		if (playing && lastField.me)
 			turn(lastField);
@@ -126,8 +127,12 @@ bodjo.on('connect', socket => {
 	}
 });
 
+let scoreboardHeaders = {
+	ru: ["Место", "Очки", "Юзернейм", "Убийства (Комбо)", "Смерти", "У/С"],
+	en: ['Place', 'Score', 'Username', 'Kills (Combo)', 'Deaths', 'KD']
+}
 bodjo.on('scoreboard', (scoreboard) => {
-	bodjo.renderScoreboard(['Place', 'Score', 'Username', 'Kills (Combo)', 'Deaths', 'KD'], 
+	bodjo.renderScoreboard(scoreboardHeaders[bodjo.lang], 
 						   scoreboard.map(player => [
 						   		'<b>'+player.place+'</b>',
 						   		player.score,

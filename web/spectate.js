@@ -11,6 +11,7 @@ bodjo.on('connect', socket => {
 			window[constName] = _consts[constName];
 	});
 	socket.on('field', data => {
+		lastField = parseField(data)
 		bodjo.callRender('', parseField(data));
 	});
 });

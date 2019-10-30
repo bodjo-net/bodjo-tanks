@@ -1,4 +1,4 @@
-let BodjoGame = require('@dkaraush/bodjo-game');
+let BodjoGame = require('../bodjo-game/index.js')//require('@dkaraush/bodjo-game');
 let bodjo = new BodjoGame(promptConfig('config.json'));
 
 bodjo.initClient('./web/');
@@ -52,6 +52,10 @@ let bonuses = [];
 let bullets = [];
 let players = {};
 
+dataChannelOptions = {
+	maxPacketLifeTime: (1000 / consts.TPS) * 1.5
+};
+
 bodjo.scoreboard.sortFunction = function (a, b) {
 	return b.score - a.score;
 }
@@ -83,7 +87,8 @@ bodjo.on('player-connect', (player) => {
 			bonuses: {},
 			hp: 1,
 			lastShot: -1,
-			headAngle: 0
+			headAngle: 0,
+			turn: null
 		};
 
 		let score = bodjo.scoreboard.get(username) || clearScore;
@@ -104,43 +109,7 @@ bodjo.on('player-connect', (player) => {
 		let headAngle = (d1 >> 1) / Math.pow(2, 15) * (Math.PI * 2);
 		let angle = message.readUInt16BE(3) / MAX16 * (Math.PI * 2);
 		let speed = message.readUInt8(5) / MAX8;
-
-		let P = players[username];
-		let vx = Math.cos(angle) * speed * (consts.tankSpeed);
-		let vy = Math.sin(angle) * speed * (consts.tankSpeed);
-		let newX = P.x + vx,
-			newY = P.y + vy;
-
-		if (noCollide(P.x,  newY, consts.tankRadius, id) ||
-			noCollide(newX, newY, consts.tankRadius, id)) {
-			P.y = newY;
-			P.vy = vy;
-		} else
-			P.vy = 0;
-
-		if (noCollide(newX, P.y,  consts.tankRadius, id) ||
-			noCollide(newX, newY, consts.tankRadius, id)) {
-			P.x = newX;
-			P.vx = vx;
-		} else
-			P.vx = 0;
-		
-		P.vtime = T;
-
-		P.headAngle = headAngle;
-		if (shoot && (T - P.lastShot >= 16)) {
-			P.lastShot = T;
-			bullets.push({
-				author: P,
-				color: P.color,
-				damage: consts.bulletDamage * (P.bonuses.ammo ? 2 : 1),
-				angle: P.headAngle,
-				x: P.x + Math.cos(P.headAngle) * (consts.tankRadius*1.1),
-				y: P.y + Math.sin(P.headAngle) * (consts.tankRadius*1.1),
-				vx: Math.cos(P.headAngle) * (consts.bulletSpeed),
-				vy: Math.sin(P.headAngle) * (consts.bulletSpeed)
-			});
-		}
+		players[username].turn = {shoot, headAngle, angle, speed};
 	});
 
 	player.on('stop', () => {
@@ -165,6 +134,51 @@ function tick() {
 	let start = Date.now();
 	let usernames = Object.keys(players);
 	T++;
+
+	for (let username of usernames) {
+		let P = players[username];
+		if (P.turn != null) {
+			let turn = P.turn;
+
+			let vx = Math.cos(turn.angle) * turn.speed * (consts.tankSpeed);
+			let vy = Math.sin(turn.angle) * turn.speed * (consts.tankSpeed);
+			let newX = P.x + vx,
+				newY = P.y + vy;
+
+			if (noCollide(P.x,  newY, consts.tankRadius, P.id) ||
+				noCollide(newX, newY, consts.tankRadius, P.id)) {
+				P.y = newY;
+				P.vy = vy;
+			} else
+				P.vy = 0;
+
+			if (noCollide(newX, P.y,  consts.tankRadius, P.id) ||
+				noCollide(newX, newY, consts.tankRadius, P.id)) {
+				P.x = newX;
+				P.vx = vx;
+			} else
+				P.vx = 0;
+			
+			P.vtime = T;
+
+			P.headAngle = turn.headAngle;
+			if (turn.shoot && (T - P.lastShot >= 16)) {
+				P.lastShot = T;
+				bullets.push({
+					author: P,
+					color: P.color,
+					damage: consts.bulletDamage * (P.bonuses.ammo ? 2 : 1),
+					angle: P.headAngle,
+					x: P.x + Math.cos(P.headAngle) * (consts.tankRadius*1.1),
+					y: P.y + Math.sin(P.headAngle) * (consts.tankRadius*1.1),
+					vx: Math.cos(P.headAngle) * (consts.bulletSpeed),
+					vy: Math.sin(P.headAngle) * (consts.bulletSpeed)
+				});
+			}
+
+			P.turn = null;
+		}
+	}
 
 	let bulletEvents = [];
 	for (let i = 0; i < bullets.length; ++i) {
@@ -255,7 +269,7 @@ function tick() {
 		}, getSpawnPos(consts.bonusRadius)));
 	}
 
-	bodjo.broadcast('field', buff(
+	let fieldBuffer = buff(
 		UInt32(T),
 		UInt8(usernames.length),
 		Array.from(usernames, username => {
@@ -263,8 +277,8 @@ function tick() {
 			return [
 				UInt8(player.id),
 				UInt8(player.color),
-				UInt8(player.vtime+1 >= T ? (player.vx + 1) / 2 * MAX8 : 0),
-				UInt8(player.vtime+1 >= T ? (player.vy + 1) / 2 * MAX8 : 0),
+				UInt8(player.vtime == T ? (player.vx + 1) / 2 * MAX8 : 0),
+				UInt8(player.vtime == T ? (player.vy + 1) / 2 * MAX8 : 0),
 				UInt8(player.headAngle / (Math.PI*2) * MAX8),
 				UInt8(player.lastShot == -1 ? MAX8 : range(T - player.lastShot, 0, MAX8-1)),
 				UInt8(player.hp * MAX8),
@@ -303,7 +317,9 @@ function tick() {
 			UInt8(bonus.x / consts.width * MAX8),
 			UInt8(bonus.y / consts.height * MAX8)
 		])
-	));
+	);
+	//log('field [' + fieldBuffer.byteLength + ']');
+	bodjo.broadcast('field', fieldBuffer);
 
 	bodjo.scoreboard.update();
 	setTimeout(tick, Math.max(1000 / consts.TPS - (Date.now() - start), 2));
