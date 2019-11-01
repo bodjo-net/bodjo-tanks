@@ -111,9 +111,7 @@ bodjo.render = function (canvas, ctx, resizeCanvas, dataPushed, data) {
             tankRadius*S*1.5*sqrt(2));
         ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-        var shootAnimation = range(data.time - player.lastShot, 0, 15) / 15;
-        if (player.lastShot == -1)
-            shootAnimation = 0;
+        var shootAnimation = range(player.lastShot, 0, 10) / 10;
         var r = sin(shootAnimation*PI) * tankRadius*2 *S;
         ctx.drawImage(sprites.whiteSmoke[~~(shootAnimation*5)],
             (player.x + cos(player.headAngle)*tankRadius)*S-r/2, 
